@@ -57,6 +57,7 @@ class Sesigame extends Component
 
     public function render()
     {
+        $totalPS = PS::count();
         $query = SesiGaming::with('paket', 'ps')
             ->where('status', '!=', 'selesai')
             ->when($this->search, function($q) {
@@ -83,6 +84,7 @@ class Sesigame extends Component
             'sesiGaming' => $sesiGaming,
             'pakets' => $pakets,
             'ps' => $ps,
+            'totalPS' => $totalPS,
             'totalAktif' => SesiGaming::aktif()->count(),
             'totalHariIni' => SesiGaming::hariIni()->count(),
             'pendapatanHariIni' => SesiGaming::hariIni()->selesai()->sum('total_harga')
