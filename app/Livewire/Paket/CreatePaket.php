@@ -7,29 +7,41 @@ use Livewire\Component;
 
 class CreatePaket extends Component
 {
-    public $nama, $harga, $deskripsi, $durasi_menit;
+    public $nama, $harga, $deskripsi, $durasi_menit, $tipe = '', $aktif = 1, $harga_per_jam;
 
     public function submit()
     {
-        $this->validate([
+        
+        $rules = [
             'nama' => 'required',
-            'harga' => 'required|numeric',
-            'deskripsi' => 'required',
-            'durasi_menit' => 'required|numeric',
-        ],[
+            'tipe' => 'required|in:durasi,los',
+        ];
+
+        if ($this->tipe === 'durasi') {
+            $rules['harga'] = 'required';
+            $rules['durasi_menit'] = 'required|numeric|min:1';
+        }
+
+        if ($this->tipe === 'los') {
+            $rules['harga_per_jam'] = 'required|numeric|min:1000';
+        }
+
+        $this->validate($rules, [
             'nama.required' => 'Nama paket harus diisi',
+            'tipe.required' => 'Tipe paket harus diisi',
             'harga.required' => 'Harga paket harus diisi',
-            'harga.numeric' => 'Harga paket harus berupa angka',
-            'deskripsi.required' => 'Deskripsi paket harus diisi',
+            'harga_per_jam.required' => 'Harga per jam harus diisi',
             'durasi_menit.required' => 'Durasi paket harus diisi',
-            'durasi_menit.numeric' => 'Durasi paket harus berupa angka',
         ]);
 
         Paket::create([
             'nama' => $this->nama,
-            'harga' => preg_replace('/[^0-9]/', '', $this->harga),
+            'harga' => $this->tipe === 'durasi' ? preg_replace('/[^0-9]/', '', $this->harga) : null,
             'deskripsi' => $this->deskripsi,
-            'durasi_menit' => $this->durasi_menit,
+            'durasi_menit' => $this->tipe === 'durasi' ? $this->durasi_menit : null,
+            'tipe' => $this->tipe,
+            'aktif' => $this->aktif,
+            'harga_per_jam' => $this->tipe === 'los' ? preg_replace('/[^0-9]/', '', $this->harga_per_jam) : null,
         ]);
 
         $this->reset();
@@ -40,7 +52,6 @@ class CreatePaket extends Component
 
     public function render()
     {
-
         return view('livewire.paket.create-paket');
     }
 }

@@ -32,9 +32,6 @@ class EditPaket extends Component
     {
         $this->validate([
             'nama'         => 'required|string|max:255',
-            'harga'        => 'required|numeric|min:1000',
-            'deskripsi'    => 'required|string',
-            'durasi_menit' => 'required|integer|min:1',
             'aktif'        => 'required|boolean',
         ]);
 

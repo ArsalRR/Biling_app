@@ -30,8 +30,6 @@
     </div>
     @endif
   </div>
-
-  <!-- Cards Statistik -->
   <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
     <div class="bg-blue-500 text-white rounded-2xl shadow p-4 flex justify-between items-center">
       <div>
@@ -62,18 +60,14 @@
       <i class="fas fa-tv text-3xl"></i>
     </div>
   </div>
-
-  <!-- Header dengan Tombol Tambah -->
   <div class="bg-white rounded-2xl shadow p-6">
     <div class="flex flex-col md:flex-row justify-between items-center mb-4">
-      <h2 class="text-lg font-semibold">Manajemen Sesi Gaming</h2>
+      <h2 class="text-lg font-semibold">Manajemen Biling Game</h2>
       <button wire:click="openModal" class="bg-blue-600 text-white px-4 py-2 rounded-xl shadow hover:bg-blue-700 transition">
         <i class="fas fa-plus mr-2"></i>Tambah Sesi Baru
       </button>
     </div>
   </div>
-
-  <!-- Grid Sesi Gaming -->
   <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
     @forelse($sesiGaming as $sesi)
       <div class="bg-white rounded-2xl shadow p-5 flex flex-col justify-between hover:shadow-lg transition">
@@ -96,53 +90,64 @@
           </span>
         </div>
 
-        <div class="space-y-2 text-sm">
-          <div>
-            <span class="font-semibold">{{ $sesi->paket->nama ?? 'N/A' }}</span>
-            <div class="text-xs text-gray-500">
-              {{ $sesi->paket->durasi_menit ?? 0 }} menit
-            </div>
-          </div>
-          <div>
-            <span class="text-gray-500">Mulai:</span>
-            <div class="font-medium">{{ $sesi->waktu_mulai->format('d/m/Y H:i') }}</div>
-          </div>
-          <div>
-            <span class="text-gray-500">Selesai:</span>
-            <div class="font-medium">{{ $sesi->waktu_selesai->format('d/m/Y H:i') }}</div>
-          </div>
-          <div>
-            <span class="text-gray-500">Sisa Waktu:</span>
-            @if($sesi->status === 'aktif')
-              @php
-                $sisaWaktu = $this->getSisaWaktu($sesi);
-              @endphp
-              <div class="{{ $sisaWaktu <= 0 ? 'text-red-600 font-bold' : ($sisaWaktu <= 15 ? 'text-yellow-600 font-bold' : 'text-green-600') }}">
-                @if($sisaWaktu <= 0)
-                  <span class="animate-pulse">⚠️ Waktu Habis</span>
-                @else
-                  {{ floor($sisaWaktu / 60) }}j {{ $sisaWaktu % 60 }}m
-                @endif
-              </div>
-            @else
-              <div class="text-gray-400">-</div>
-            @endif
-          </div>
-          <div>
-            <span class="text-gray-500">Total:</span>
-            <div class="font-semibold">Rp {{ number_format($sesi->total_harga, 0, ',', '.') }}</div>
-          </div>
-          @if($sesi->catatan)
-          <div>
-            <span class="text-gray-500">Catatan:</span>
-            <div class="text-xs bg-gray-50 p-2 rounded mt-1">{{ $sesi->catatan }}</div>
-          </div>
-          @endif
-        </div>
+       <div wire:poll.60s="refreshSessions" class="space-y-2 text-sm">
+  <div>
+    <span class="font-semibold">{{ $sesi->paket->nama ?? 'N/A' }}</span>
+    <div class="text-xs text-gray-500">
+      {{ $sesi->paket->durasi_menit ?? 0 }} menit
+    </div>
+  </div>
+  <div>
+    <span class="text-gray-500">Mulai:</span>
+    <div class="font-medium">{{ $sesi->waktu_mulai->format('d/m/Y H:i') }}</div>
+  </div>
+  <div>
+    <span class="text-gray-500">Selesai:</span>
+    <div class="font-medium">{{ $sesi->waktu_selesai->format('d/m/Y H:i') }}</div>
+  </div>
+ <div>
+  <span class="text-gray-500">Sisa Waktu:</span>
+  @if($sesi->status === 'aktif')
+    @php $sisaWaktu = $this->getSisaWaktu($sesi); @endphp
+    @if($sesi->paket->tipe === 'los')
+      <div class="text-blue-600 font-bold">
+        {{ floor($sisaWaktu / 60) }}j {{ $sisaWaktu % 60 }}m
+      </div>
+    @else
+      <div class="{{ $sisaWaktu <= 0 ? 'text-red-600 font-bold' : ($sisaWaktu <= 15 ? 'text-yellow-600 font-bold' : 'text-green-600') }}">
+        @if($sisaWaktu <= 0)
+          <span class="animate-pulse">⚠️ Waktu Habis</span>
+        @else
+          {{ floor($sisaWaktu / 60) }}j {{ $sisaWaktu % 60 }}m
+        @endif
+      </div>
+    @endif
+  @else
+    <div class="text-gray-400">-</div>
+  @endif
+</div>
+<div wire:poll.30s>
+@if($sesi->paket->tipe === 'los')
+  <span class="text-gray-500">Total Sementara:</span>
+  Rp {{ number_format($this->getRunningTotal($sesi), 0, ',', '.') }}
+@else
+  <span class="text-gray-500">Total:</span>
+  Rp {{ number_format($sesi->total_harga, 0, ',', '.') }}
+@endif
+</div>
+  @if($sesi->catatan)
+  <div>
+    <span class="text-gray-500">Catatan:</span>
+    <div class="text-xs bg-gray-50 p-2 rounded mt-1">{{ $sesi->catatan }}</div>
+  </div>
+  @endif
+</div>
+
 
         <div class="mt-4 flex gap-2 flex-wrap">
           @if($sesi->status === 'aktif')
-            <button wire:click="openExtendModal({{ $sesi->id }})"
+          
+<button wire:click="openExtendModal({{ $sesi->id }})"
                     class="flex-1 min-w-20 bg-purple-500 text-white p-2 rounded-lg hover:bg-purple-600 flex items-center justify-center gap-1 transition">
               <i class="fas fa-clock"></i>
               <span class="text-xs">Tambah</span>
@@ -293,34 +298,54 @@
                       <span class="text-gray-600">Total Harga Saat Ini:</span>
                       <span class="font-medium">Rp {{ number_format($currentSesi->total_harga, 0, ',', '.') }}</span>
                     </div>
-                    <div class="flex justify-between">
-                      <span class="text-gray-600">Sisa Waktu:</span>
-                      @php $sisaWaktu = $this->getSisaWaktu($currentSesi); @endphp
-                      <span class="font-medium {{ $sisaWaktu <= 0 ? 'text-red-600' : ($sisaWaktu <= 15 ? 'text-yellow-600' : 'text-green-600') }}">
-                        @if($sisaWaktu <= 0)
-                          Waktu Habis
-                        @else
-                          {{ floor($sisaWaktu / 60) }}j {{ $sisaWaktu % 60 }}m
-                        @endif
-                      </span>
-                    </div>
+                  <div>
+  
+  @if($sesi->paket->tipe === 'los')
+    <span class="text-gray-500">Durasi:</span>
+    @php $durasi = $this->getSisaWaktu($sesi); @endphp
+    <div class="text-blue-600 font-bold">
+      {{ floor($durasi / 60) }}j {{ $durasi % 60 }}m
+    </div>
+  @else
+    <span class="text-gray-500">Sisa Waktu:</span>
+    @php $sisaWaktu = $this->getSisaWaktu($sesi); @endphp
+    <div class="{{ $sisaWaktu <= 0 ? 'text-red-600 font-bold' : ($sisaWaktu <= 15 ? 'text-yellow-600 font-bold' : 'text-green-600') }}"wire:poll.30s>
+      @if($sisaWaktu <= 0)
+        <span class="animate-pulse">⚠️ Waktu Habis</span>
+      @else
+        {{ floor($sisaWaktu / 60) }}j {{ $sisaWaktu % 60 }}m
+      @endif
+    </div>
+  @endif
+</div>
                   </div>
                 </div>
               @endif
             @endif
+@if($extendSesiId)
+  @php
+    $sesi = \App\Models\SesiGaming::find($extendSesiId);
+  @endphp
 
-            <div>
-              <label class="block text-sm font-medium mb-2">Pilih Paket Perpanjangan <span class="text-red-500">*</span></label>
-              <select wire:model.live="extendPaketId" class="w-full border rounded-xl px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                <option value="">Pilih Paket</option>
-                @foreach($pakets as $paket)
-                  <option value="{{ $paket->id }}">
-                    {{ $paket->nama }} - {{ $paket->durasi_menit }} menit - Rp {{ number_format($paket->harga, 0, ',', '.') }}
-                  </option>
-                @endforeach
-              </select>
-              @error('extendPaketId') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
-            </div>
+  @if($sesi && $sesi->paket->tipe === 'durasi')
+    <div>
+      <label class="block text-sm font-medium mb-2">Pilih Paket Perpanjangan <span class="text-red-500">*</span></label>
+      <select wire:model.live="extendPaketId" class="w-full border rounded-xl px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+        <option value="">Pilih Paket</option>
+        @foreach($pakets as $paket)
+          @if($paket->tipe === 'durasi')
+            <option value="{{ $paket->id }}">
+              {{ $paket->nama }} - {{ $paket->durasi_menit }} menit - Rp {{ number_format($paket->harga, 0, ',', '.') }}
+            </option>
+          @endif
+        @endforeach
+      </select>
+      @error('extendPaketId') 
+        <p class="text-red-500 text-sm mt-1">{{ $message }}</p> 
+      @enderror
+    </div>
+  @endif
+@endif
 
             @if($extendPaketId && $currentSesi)
               @php

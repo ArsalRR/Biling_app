@@ -13,7 +13,9 @@ class Paket extends Model
         'durasi_menit',
         'harga',
         'deskripsi',
-        'aktif'
+        'aktif',
+        'tipe',
+        'harga_per_jam'
     ];
 
     protected $casts = [

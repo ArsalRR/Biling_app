@@ -54,6 +54,8 @@
       <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-300">
         <tr>
           <th class="px-6 py-3">Nama Paket</th>
+          <th class="px-6 py-3">Tipe</th>
+          <th class="px-6 py-3">Harga per Jam</th>
           <th class="px-6 py-3">Durasi</th>
           <th class="px-6 py-3">Harga</th>
           <th class="px-6 py-3">Deskripsi</th>
@@ -67,6 +69,8 @@
           <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
             {{ $row->nama }}
           </td>
+           <td class="px-6 py-4">{{ $row->tipe }} </td>
+           <td class="px-6 py-4">Rp {{ number_format($row->harga_per_jam, 0, ',', '.') }}</td>
           <td class="px-6 py-4">{{ $row->durasi_menit }} menit</td>
           <td class="px-6 py-4">Rp {{ number_format($row->harga, 0, ',', '.') }}</td>
           <td class="px-6 py-4">{{ $row->deskripsi }}</td>

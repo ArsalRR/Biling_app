@@ -24,7 +24,6 @@ class Sesigame extends Component
     public $extendSesiId;
     public $extendPaketId = '';
     public $tambahanWaktu = 0;
-
     public $filterStatus = '';
     public $filterTanggal = '';
     public $search = '';
@@ -138,72 +137,77 @@ class Sesigame extends Component
     }
 
     public function save()
-    {
-        if (empty($this->ps_id)) {
-            $this->ps_id = null;
-        }
-        if (empty($this->paket_id)) {
-            $this->paket_id = null;
-        }
+{
+    if (empty($this->ps_id)) {
+        $this->ps_id = null;
+    }
+    if (empty($this->paket_id)) {
+        $this->paket_id = null;
+    }
 
-        $this->validate();
-        
-        $waktuMulai = Carbon::parse($this->waktu_mulai);
-        
-        $paket = Paket::find($this->paket_id);
-        if (!$paket) {
-            session()->flash('error', 'Paket tidak ditemukan');
-            return redirect()->route('sesi');
-        }
-        
-        $ps = PS::find($this->ps_id);
-        if (!$ps) {
-            session()->flash('error', 'PS tidak ditemukan');
-            return redirect()->route('sesi');
-        }
-
+    $this->validate();
+    
+    $waktuMulai = Carbon::parse($this->waktu_mulai);
+    
+    $paket = Paket::find($this->paket_id);
+    if (!$paket) {
+        session()->flash('error', 'Paket tidak ditemukan');
+        return redirect()->route('sesi');
+    }
+    
+    $ps = PS::find($this->ps_id);
+    if (!$ps) {
+        session()->flash('error', 'PS tidak ditemukan');
+        return redirect()->route('sesi');
+    }
+    if ($paket->tipe === 'durasi') {
         $waktuSelesai = $waktuMulai->copy()->addMinutes($paket->durasi_menit);
         $totalHarga = $paket->harga;
+    } else {
+        $waktuSelesai = $waktuMulai->copy()->addHour();
+        $totalHarga = 0;
+    }
 
-        $data = [
-            'paket_id' => (int)$this->paket_id,
-            'ps_id' => (int)$this->ps_id,
-            'waktu_mulai' => $waktuMulai,
-            'waktu_selesai' => $waktuSelesai,
-            'total_harga' => $totalHarga,
-            'catatan' => $this->catatan,
-            'status' => 'aktif',
-            'tv_dimatikan' => false
-        ];
+    $data = [
+        'paket_id' => (int)$this->paket_id,
+        'ps_id' => (int)$this->ps_id,
+        'waktu_mulai' => $waktuMulai,
+        'waktu_selesai' => $waktuSelesai,
+        'total_harga' => $totalHarga,
+        'catatan' => $this->catatan,
+        'status' => 'aktif',
+        'tv_dimatikan' => false
+    ];
 
-        try {
-            if ($this->editMode) {
-                $sesi = SesiGaming::find($this->sesiId);
-                if ($sesi) {
-                    $sesi->update($data);
-                    session()->flash('success', 'Sesi gaming berhasil diupdate');
-                }
-            } else {
-                $existingSession = SesiGaming::where('ps_id', $this->ps_id)
-                    ->where('status', 'aktif')
-                    ->exists();
-                    
-                if ($existingSession) {
-                    session()->flash('error', 'PS sudah digunakan untuk sesi aktif lainnya');
-                    return redirect()->route('sesi');
-                }
-
-                SesiGaming::create($data);
-                session()->flash('success', 'Sesi gaming berhasil ditambahkan');
+    try {
+        if ($this->editMode) {
+            $sesi = SesiGaming::find($this->sesiId);
+            if ($sesi) {
+                $sesi->update($data);
+                session()->flash('success', 'Sesi gaming berhasil diupdate');
+            }
+        } else {
+            $existingSession = SesiGaming::where('ps_id', $this->ps_id)
+                ->where('status', 'aktif')
+                ->exists();
+                
+            if ($existingSession) {
+                session()->flash('error', 'PS sudah digunakan untuk sesi aktif lainnya');
+                return redirect()->route('sesi');
             }
 
-            return redirect()->route('sesi');
-            
-        } catch (\Exception $e) {
-            session()->flash('error', 'Terjadi kesalahan: ' . $e->getMessage());
-            return redirect()->route('sesi');
+            SesiGaming::create($data);
+            session()->flash('success', 'Sesi gaming berhasil ditambahkan');
         }
+
+        return redirect()->route('sesi');
+        
+    } catch (\Exception $e) {
+        session()->flash('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        return redirect()->route('sesi');
     }
+}
+
 
     public function extendTime()
     {
@@ -242,21 +246,43 @@ class Sesigame extends Component
     }
 
     public function selesaikanSesi($sesiId)
-    {
-        $sesi = SesiGaming::find($sesiId);
-        
-        if ($sesi && $sesi->status === 'aktif') {
-            $sesi->update([
-                'status' => 'selesai',
-                'waktu_selesai' => now(),
-                'tv_dimatikan' => true
-            ]);
-            
-            session()->flash('success', 'Sesi berhasil diselesaikan');
+{
+    $sesi = SesiGaming::with('paket')->find($sesiId);
+    
+    if ($sesi && $sesi->status === 'aktif') {
+        $waktuMulai = Carbon::parse($sesi->waktu_mulai);
+        $waktuSelesai = now();
+        $durasiMenit = $waktuMulai->diffInMinutes($waktuSelesai);
+
+        $totalHarga = $sesi->total_harga;
+
+        if ($sesi->paket->tipe === 'los') {
+            $hargaPerMenit = $sesi->paket->harga / 60;
+            $totalHarga = ceil($durasiMenit * $hargaPerMenit); 
         }
 
-        return redirect()->route('sesi');
+        $sesi->update([
+            'status' => 'selesai',
+            'waktu_selesai' => $waktuSelesai,
+            'total_harga' => $totalHarga,
+            'tv_dimatikan' => true
+        ]);
+        
+        session()->flash('success', 'Sesi berhasil diselesaikan. Total: Rp ' . number_format($totalHarga, 0, ',', '.'));
     }
+
+    return redirect()->route('sesi');
+}
+
+    public function refreshSessions()
+{
+    SesiGaming::where('status', 'aktif')
+        ->where('waktu_selesai', '<', now())
+        ->update([
+            'status' => 'selesai',
+            'tv_dimatikan' => true
+        ]);
+}
 
     public function batalkanSesi($sesiId)
     {
@@ -352,19 +378,25 @@ class Sesigame extends Component
         return $sesi->status === 'aktif' && now()->lt($sesi->waktu_selesai);
     }
 
-    public function getSisaWaktu($sesi)
-    {
-        if ($sesi->status !== 'aktif') {
-            return 0;
-        }
-        
-        $sekarang = now();
-        $waktuSelesai = Carbon::parse($sesi->waktu_selesai);
-        
-        if ($sekarang->gte($waktuSelesai)) {
-            return 0;
-        }
-        
-        return $sekarang->diffInMinutes($waktuSelesai);
+ public function getSisaWaktu($sesi)
+{
+    if ($sesi->paket->tipe === 'los') {
+        return $sesi->waktu_mulai->diffInMinutes(now());
+    } else {
+        return now()->diffInMinutes($sesi->waktu_selesai, false);
     }
+}
+public function getRunningTotal($sesi)
+{
+    if ($sesi->paket->tipe === 'los') {
+        $durasiMenit = $sesi->waktu_mulai->diffInMinutes(now());
+        $hargaPerMenit = $sesi->paket->harga_per_jam / 60;
+        return ceil($durasiMenit * $hargaPerMenit);
+    }
+    return $sesi->total_harga;
+}
+
+
+
+
 }
