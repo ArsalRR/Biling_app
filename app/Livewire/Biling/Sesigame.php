@@ -257,7 +257,7 @@ class Sesigame extends Component
         $totalHarga = $sesi->total_harga;
 
         if ($sesi->paket->tipe === 'los') {
-            $hargaPerMenit = $sesi->paket->harga / 60;
+            $hargaPerMenit = $sesi->paket->harga_per_jam / 60;
             $totalHarga = ceil($durasiMenit * $hargaPerMenit); 
         }
 
@@ -395,6 +395,7 @@ public function getRunningTotal($sesi)
     }
     return $sesi->total_harga;
 }
+
 
 
 
